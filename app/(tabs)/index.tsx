@@ -1,4 +1,4 @@
-import { View, StyleSheet, Text, FlatList, Pressable } from "react-native";
+import { View, StyleSheet, Text, FlatList, Pressable, ToastAndroid } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 
@@ -10,12 +10,15 @@ import { locate } from "@/utils/locate";
 import { LocationObject } from "expo-location";
 import OptionsListModal from "@/components/modals/OptionsListModal";
 const PlaceholderImage = require("@/assets/images/background-image.png");
-
+import 'react-native-get-random-values'
 import { v4 as uuid } from "uuid";
-import { useMMKVObject } from "react-native-mmkv";
-import { storage, User } from "@/db/Cache";
+import {  User } from "@/db/Cache";
+import { useAsyncStorageData } from "@/db/useAsyncStorageData";
 
 export default function Index() {
+  const showToast = () => {
+    ToastAndroid.showWithGravity('New memory added!', ToastAndroid.SHORT, ToastAndroid.TOP);
+  };
   const [selectedImage, setSelectedImage] = useState<string | undefined>(
     undefined
   );
@@ -35,7 +38,7 @@ export default function Index() {
       setSelectedImage(result.assets[0].uri);
     }
   };
-  const [user, setUser] = useMMKVObject<User>("user", storage);
+  const {data: user, updateData} = useAsyncStorageData<User>('user')
   const takePhotoAsync = async () => {
     let result = await ImagePicker.launchCameraAsync({
       mediaTypes: ["images"],
@@ -57,9 +60,10 @@ export default function Index() {
     if (!location || !selectedImage) {
       return alert("Missing memory information!");
     }
+    
     const date = new Date();
-    setUser({
-      ...user,
+    updateData({
+      ...(user ?? {memories: []}),
       memories: [
         ...(user?.memories ?? []),
         {
@@ -73,6 +77,8 @@ export default function Index() {
         },
       ],
     });
+    showToast();
+    
   };
 
   const onLocateUser = async () => {

@@ -1,29 +1,46 @@
-import { storage, User } from "@/db/Cache";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { useMMKVObject } from "react-native-mmkv";
-
+import { User } from "@/db/Cache";
+import { useAsyncStorageData } from "@/db/useAsyncStorageData";
+import { useCallback, useState } from "react";
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 export default function Memories() {
-  const [user] = useMMKVObject<User>("user", storage);
-
+  const { data: user, fetchData } = useAsyncStorageData<User>("user");
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+      fetchData()
+    }, 1200);
+  }, []);
   return (
-    <ScrollView contentContainerStyle={styles.scrollView}>
-      {!user?.memories.length && (
-        <View>
-          <Text style={styles.text}>No memories yet!</Text>
-        </View>
-      )}
-      {user?.memories.map((item) => (
-        <View>
-          <Text>{item.id}</Text>
-        </View>
-      ))}
-    </ScrollView>
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.scrollView}  refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }>
+          {!user?.memories.length && (
+            <View>
+              <Text style={styles.text}>No memories yet!</Text>
+            </View>
+          )}
+          {user?.memories.map((item) => (
+            <View key={item.id}>
+              <Text>{item.id}</Text>
+            </View>
+          ))}
+        </ScrollView>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
   text: {
     color: "#fff",
+  },
+  container: {
+    flex: 1,
   },
   scrollView: {
     flex: 1,

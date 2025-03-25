@@ -55,8 +55,6 @@ export default function Index() {
     setIsModalVisible(true);
   };
   const onSubmitMemory = () => {
-    console.log("HEREs");
-    console.log(location, selectedImage);
     if (!location || !selectedImage) {
       return alert("Missing memory information!");
     }
@@ -107,7 +105,9 @@ export default function Index() {
         <View style={styles.optionsRow}>
           <IconButton
             icon="refresh"
-            onPress={() => setSelectedImage(undefined)}
+            onPress={() => {
+              setSelectedImage(undefined);
+              setLocation(undefined)}}
           />
           <CircleButton
             onPress={isNewMemoryReady ? onSubmitMemory : onChooseAddOption}

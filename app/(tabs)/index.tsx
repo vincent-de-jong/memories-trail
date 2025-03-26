@@ -1,4 +1,12 @@
-import { View, StyleSheet, Text, FlatList, Pressable, ToastAndroid } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Text,
+  FlatList,
+  Pressable,
+  ToastAndroid,
+  TextInput,
+} from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 
@@ -10,21 +18,23 @@ import { locate } from "@/utils/locate";
 import { LocationObject } from "expo-location";
 import OptionsListModal from "@/components/modals/OptionsListModal";
 const PlaceholderImage = require("@/assets/images/background-image.png");
-import 'react-native-get-random-values'
+import "react-native-get-random-values";
 import { v4 as uuid } from "uuid";
-import {  User } from "@/db/Cache";
+import { Memory, MemoryInput, MemoryInputPartial, User } from "@/db/Cache";
 import { useAsyncStorageData } from "@/db/useAsyncStorageData";
 
 export default function Index() {
   const showToast = () => {
-    ToastAndroid.showWithGravity('New memory added!', ToastAndroid.SHORT, ToastAndroid.TOP);
+    ToastAndroid.showWithGravity(
+      "New memory added!",
+      ToastAndroid.SHORT,
+      ToastAndroid.TOP
+    );
   };
-  const [selectedImage, setSelectedImage] = useState<string | undefined>(
-    undefined
-  );
+
+  const [memory, setMemory] = useState<MemoryInputPartial>({});
   const [error, setError] = useState<string>();
 
-  const [location, setLocation] = useState<LocationObject | undefined>();
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
 
   const pickImageAsync = async () => {
@@ -35,10 +45,10 @@ export default function Index() {
     });
 
     if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
+      setMemory({ ...memory, file: result.assets[0].uri });
     }
   };
-  const {data: user, updateData} = useAsyncStorageData<User>('user')
+  const { data: user, updateData } = useAsyncStorageData<User>("user");
   const takePhotoAsync = async () => {
     let result = await ImagePicker.launchCameraAsync({
       mediaTypes: ["images"],
@@ -47,7 +57,7 @@ export default function Index() {
     });
 
     if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
+      setMemory({ ...memory, file: result.assets[0].uri });
     }
   };
 
@@ -55,48 +65,64 @@ export default function Index() {
     setIsModalVisible(true);
   };
   const onSubmitMemory = () => {
-    if (!location || !selectedImage) {
+    if (!memory.coordinates || !memory.coordinates) {
       return alert("Missing memory information!");
     }
-    
+    const memoryInput = memory as MemoryInput;
     const date = new Date();
+
+    const newMemory: Memory = {
+      id: uuid(),
+      timestamp: {
+        unix: date.getTime(),
+        utc: date.toUTCString(),
+      },
+      ...memoryInput,
+    };
     updateData({
-      ...(user ?? {memories: []}),
-      memories: [
-        ...(user?.memories ?? []),
-        {
-          coordinates: location,
-          file: selectedImage,
-          id: uuid(),
-          timestamp: {
-            unix: date.getTime(),
-            utc: date.toUTCString(),
-          },
-        },
-      ],
+      ...(user ?? { memories: [] }),
+      memories: [...(user?.memories ?? []), newMemory],
     });
     showToast();
-    
   };
 
   const onLocateUser = async () => {
     const location = await locate();
     if (location.error) return setError(location.msg);
-    return setLocation(location.res);
+    return setMemory({ ...memory, coordinates: location.res });
   };
-  const isNewMemoryReady = selectedImage && location;
+  const isNewMemoryReady = (memory.text || memory.file) && location;
+  const memoryTextLenght = memory.text?.length ?? 0
   return (
     <View style={styles.container}>
       <View style={styles.imageContainer}>
-        <ImageViewer
-          imgSource={PlaceholderImage}
-          selectedImage={selectedImage}
+        <ImageViewer imgSource={PlaceholderImage} selectedImage={memory.file} />
+        {!!memoryTextLenght && <View style={styles.textCounterContainer}><Text style={styles.textCounter} >{memoryTextLenght}/400</Text></View>}
+        <TextInput
+          autoCapitalize={"sentences"}
+          focusable={false}
+          multiline
+          
+          style={{
+            ...{ outlineStyle: "none" },
+            ...styles.input,
+            ...(memoryTextLenght < 200
+              ? styles.largeFontSize
+              : memoryTextLenght < 250 ? styles.mediumFontSize: styles.smallFontSize),
+          }}
+          numberOfLines={9}
+          maxLength={400}
+          placeholderTextColor={"rgba(255, 255, 255, 0.6)"}
+          placeholder={"Words help memories being more vivid"}
+          value={memory.text}
+          onChangeText={(v) => setMemory({ ...memory, text: v })}
         />
-        {location && (
+        {memory.coordinates && (
           <View>
             <Text>
-              {location.coords.longitude} - {location.coords.latitude} -{" "}
-              {location.coords.accuracy}
+              {memory.coordinates.coords.longitude} -{" "}
+              {memory.coordinates.coords.latitude} -{" "}
+              {memory.coordinates.coords.accuracy}
             </Text>
           </View>
         )}
@@ -106,8 +132,8 @@ export default function Index() {
           <IconButton
             icon="refresh"
             onPress={() => {
-              setSelectedImage(undefined);
-              setLocation(undefined)}}
+              setMemory({});
+            }}
           />
           <CircleButton
             onPress={isNewMemoryReady ? onSubmitMemory : onChooseAddOption}
@@ -150,7 +176,23 @@ const OPTIONS: { id: "image-picker" | "camera"; title: string }[] = [
   { id: "camera", title: "Take a photo" },
 ];
 
+
 const styles = StyleSheet.create({
+  input: {
+    color: "#rgba(255, 255, 255, 0.8)",
+    marginTop: 4,
+    marginBottom: 8,
+    height: 'auto'
+  },
+  textCounterContainer: {display: 'flex', alignItems: 'flex-end', marginTop: 24},
+  textCounter: {
+    fontSize: 12,
+    color: "#rgba(255, 255, 255, 0.6)"
+  },
+  smallFontSize: { fontSize: 12 },
+  mediumFontSize: {fontSize: 16},
+  largeFontSize: { fontSize: 18 },
+
   flatListItemContainer: {
     display: "flex",
     width: "100%",
@@ -181,8 +223,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   optionsContainer: {
-    position: "absolute",
-    bottom: 80,
+    marginBottom: 80
   },
   optionsRow: {
     alignItems: "center",

@@ -1,9 +1,11 @@
 import { LocationObject } from "expo-location";
 export type Memory = {
   id: string;
-  file: string;
+  file?: string;
   text: string;
   coordinates: LocationObject;
+  // radius in km to trigger memory
+  radius: number;
 
   timestamp: {
     unix: number;
@@ -11,9 +13,11 @@ export type Memory = {
   };
 };
 
-export type MemoryInput = Pick<Memory, 'coordinates'|'file'|'text'>
-export type MemoryInputPartial = Partial<MemoryInput>
+export type MemoryInput = Pick<
+  Memory,
+  "coordinates" | "file" | "text" | "radius"
+>;
+export type MemoryInputPartial = Partial<MemoryInput>;
 export type User = {
   memories: Memory[];
 };
-

@@ -1,7 +1,15 @@
+import { MemoryTile } from "@/components/scoped/MemoryTile";
 import { User } from "@/db/Cache";
 import { useAsyncStorageData } from "@/db/useAsyncStorageData";
 import { useCallback, useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  FlatList,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 export default function Memories() {
   const { data: user, fetchData } = useAsyncStorageData<User>("user");
@@ -10,28 +18,25 @@ export default function Memories() {
     setRefreshing(true);
     setTimeout(() => {
       setRefreshing(false);
-      fetchData()
+      fetchData();
     }, 1200);
   }, []);
+
   return (
-    <SafeAreaProvider>
-      <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.scrollView}  refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }>
-          {!user?.memories.length && (
-            <View>
-              <Text style={styles.text}>No memories yet!</Text>
-            </View>
-          )}
-          {user?.memories.map((item) => (
-            <View key={item.id}>
-              <Text>{item.id}</Text>
-            </View>
-          ))}
-        </ScrollView>
-      </SafeAreaView>
-    </SafeAreaProvider>
+    <View style={styles.list}>
+      {!user?.memories.length && (
+        <View>
+          <Text style={styles.text}>No memories yet!</Text>
+        </View>
+      )}
+      <FlatList
+      style={{width: '100%'}}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        data={user?.memories ?? []}
+        renderItem={({ item: i }) => <MemoryTile key={i.id} memory={i} />}
+      />
+    </View>
   );
 }
 
@@ -39,10 +44,10 @@ const styles = StyleSheet.create({
   text: {
     color: "#fff",
   },
-  container: {
-    flex: 1,
-  },
-  scrollView: {
+
+  list: {
+    width: "100%",
+    height: "100%",
     flex: 1,
     backgroundColor: "#25292e",
     alignItems: "center",
